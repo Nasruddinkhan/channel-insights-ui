@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: channel-insights-ui
+  namespace: nasruddinkhan786-dev
+  labels:
+    app: channel-insights-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: channel-insights-ui
+  template:
+    metadata:
+      labels:
+        app: channel-insights-ui
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: registry-auth
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: dashboard
+          image: docker.io/nasruddinkhan/channel-insights-ui:local
+          imagePullPolicy: Always
+          # Bypass the root-oriented entrypoint and load the mounted Nginx config.
+          command: [nginx]
+          args: ['-c', /etc/nginx-custom/nginx.conf, '-g', 'daemon off;']
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx-custom
+              readOnly: true
+            - name: temporary-files
+              mountPath: /tmp
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: channel-insights-nginx
+        - name: temporary-files
+          emptyDir: {}
