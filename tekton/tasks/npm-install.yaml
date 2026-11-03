@@ -1,0 +1,32 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: channel-insights-npm-install
+spec:
+  workspaces:
+    - name: shared
+  steps:
+    - name: install
+      image: node:22-alpine
+      workingDir: $(workspaces.shared.path)/source
+      script: |
+        #!/bin/sh
+        set -eu
+        npm ci
+    - name: build-frontend
+      image: node:22-alpine
+      workingDir: $(workspaces.shared.path)/source
+      env:
+        - name: NODE_OPTIONS
+          value: --max-old-space-size=1536
+      computeResources:
+        requests:
+          memory: 512Mi
+          cpu: 250m
+        limits:
+          memory: 2Gi
+          cpu: '1'
+      script: |
+        #!/bin/sh
+        set -eu
+        npm run build

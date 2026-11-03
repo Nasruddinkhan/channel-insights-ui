@@ -1,4 +1,6 @@
-import { BeachAccessOutlined, LaptopMacOutlined, WidgetsOutlined } from '@mui/icons-material';
+import BeachAccessOutlined from '@mui/icons-material/BeachAccessOutlined';
+import LaptopMacOutlined from '@mui/icons-material/LaptopMacOutlined';
+import WidgetsOutlined from '@mui/icons-material/WidgetsOutlined';
 import { Link } from 'react-router-dom';
 import type { FeatureSummary, Filters } from '../types';
 const icons: Record<string, typeof WidgetsOutlined> = {

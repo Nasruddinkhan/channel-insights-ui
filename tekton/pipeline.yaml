@@ -1,0 +1,59 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: channel-insights-image
+spec:
+  params:
+    - name: git-url
+      type: string
+      default: https://github.com/Nasruddinkhan/channel-insights-ui.git
+    - name: revision
+      type: string
+      default: codex/channel-insights-dashboard
+    - name: image
+      type: string
+      default: docker.io/nasruddinkhan/channel-insights-ui:local
+  workspaces:
+    - name: shared
+    - name: registry-auth
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: channel-insights-git-clone
+      params:
+        - name: git-url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.revision)
+      workspaces:
+        - name: shared
+          workspace: shared
+    - name: npm-install
+      runAfter: [git-clone]
+      taskRef:
+        name: channel-insights-npm-install
+      workspaces:
+        - name: shared
+          workspace: shared
+    - name: docker-build
+      runAfter: [npm-install]
+      taskRef:
+        name: channel-insights-docker-build
+      params:
+        - name: image
+          value: $(params.image)
+      workspaces:
+        - name: shared
+          workspace: shared
+    - name: docker-push
+      runAfter: [docker-build]
+      taskRef:
+        name: channel-insights-docker-push
+      params:
+        - name: image
+          value: $(params.image)
+      workspaces:
+        - name: shared
+          workspace: shared
+        - name: registry-auth
+          workspace: registry-auth

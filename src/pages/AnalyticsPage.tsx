@@ -2,13 +2,11 @@ import { useCallback, useMemo, useState } from 'react';
 import { useHttp } from '../hooks/useHttp';
 import { Link } from 'react-router-dom';
 import { Alert, Button, CircularProgress } from '@mui/material';
-import {
-  PeopleOutline,
-  DescriptionOutlined,
-  Language,
-  Smartphone,
-  CalendarTodayOutlined,
-} from '@mui/icons-material';
+import PeopleOutline from '@mui/icons-material/PeopleOutline';
+import DescriptionOutlined from '@mui/icons-material/DescriptionOutlined';
+import Language from '@mui/icons-material/Language';
+import Smartphone from '@mui/icons-material/Smartphone';
+import CalendarTodayOutlined from '@mui/icons-material/CalendarTodayOutlined';
 import type { Filters, UsageEvent } from '../types';
 import { analyticsService } from '../services/analyticsService';
 import { DEMO_END } from '../data/events';

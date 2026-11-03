@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useHttp } from '../hooks/useHttp';
 import { Alert, Button, CircularProgress } from '@mui/material';
-import { WidgetsOutlined } from '@mui/icons-material';
+import WidgetsOutlined from '@mui/icons-material/WidgetsOutlined';
 import type { Filters, AnalyticsNavigationState } from '../types';
 import { featureSummaryService } from '../services/featureSummaryService';
 import { FilterBar, defaultFilters } from '../components/FilterBar';

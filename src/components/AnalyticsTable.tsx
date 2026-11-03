@@ -10,7 +10,7 @@ import {
   TableSortLabel,
   TablePagination,
 } from '@mui/material';
-import { FileDownloadOutlined } from '@mui/icons-material';
+import FileDownloadOutlined from '@mui/icons-material/FileDownloadOutlined';
 import type { AnalyticsRow } from '../types';
 const columns: { key: keyof AnalyticsRow; label: string }[] = [
   { key: 'name', label: 'Feature' },

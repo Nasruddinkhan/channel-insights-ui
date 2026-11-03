@@ -1,14 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { IconButton, Tooltip } from '@mui/material';
-import {
-  Menu,
-  DashboardOutlined,
-  InsightsOutlined,
-  ViewModuleOutlined,
-  ChevronLeft,
-  HelpOutline,
-} from '@mui/icons-material';
+import Menu from '@mui/icons-material/Menu';
+import DashboardOutlined from '@mui/icons-material/DashboardOutlined';
+import InsightsOutlined from '@mui/icons-material/InsightsOutlined';
+import ViewModuleOutlined from '@mui/icons-material/ViewModuleOutlined';
+import ChevronLeft from '@mui/icons-material/ChevronLeft';
+import HelpOutline from '@mui/icons-material/HelpOutline';
 const navigation = [
   { path: '/feature-summary', label: 'Feature Summary', icon: ViewModuleOutlined },
   { path: '/', label: 'Overview', icon: DashboardOutlined },

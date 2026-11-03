@@ -4,3 +4,5 @@ dist
 .DS_Store
 *.log
 dashboard-preview.png
+
+tekton/registry-secret.yaml

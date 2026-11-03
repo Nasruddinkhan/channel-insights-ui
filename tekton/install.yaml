@@ -1,0 +1,223 @@
+# Combined installation for nasruddinkhan786-dev. Registry credentials are not included.
+# Source: tekton/tasks/docker-build.yaml
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  namespace: nasruddinkhan786-dev
+  name: channel-insights-docker-build
+spec:
+  params:
+    - name: image
+      type: string
+  workspaces:
+    - name: shared
+  steps:
+    - name: build
+      image: quay.io/buildah/stable:latest
+      workingDir: $(workspaces.shared.path)/source
+      securityContext:
+        privileged: false
+        runAsUser: 0
+        capabilities:
+          add:
+            - SETFCAP
+      env:
+        - name: IMAGE
+          value: $(params.image)
+        - name: IMAGE_ARCHIVE
+          value: $(workspaces.shared.path)/image.tar
+      script: |
+        #!/bin/sh
+        set -eu
+        buildah --storage-driver=vfs build \
+          --isolation=chroot \
+          --format=docker \
+          --file docker/Dockerfile.ci \
+          --ignorefile docker/Dockerfile.ci.dockerignore \
+          --tag "$IMAGE" .
+        # Image storage is pod-local. Export it so the push Task can read it.
+        buildah --storage-driver=vfs push "$IMAGE" "oci-archive:$IMAGE_ARCHIVE"
+---
+# Source: tekton/tasks/docker-push.yaml
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  namespace: nasruddinkhan786-dev
+  name: channel-insights-docker-push
+spec:
+  params:
+    - name: image
+      type: string
+  workspaces:
+    - name: shared
+      readOnly: true
+    - name: registry-auth
+      readOnly: true
+  steps:
+    - name: push
+      image: quay.io/skopeo/stable:latest
+      env:
+        - name: IMAGE
+          value: $(params.image)
+        - name: IMAGE_ARCHIVE
+          value: $(workspaces.shared.path)/image.tar
+        - name: AUTH_FILE
+          value: $(workspaces.registry-auth.path)/.dockerconfigjson
+      script: |
+        #!/bin/sh
+        set -eu
+        skopeo copy \
+          --authfile "$AUTH_FILE" \
+          "oci-archive:$IMAGE_ARCHIVE" \
+          "docker://$IMAGE"
+---
+# Source: tekton/tasks/git-clone.yaml
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  namespace: nasruddinkhan786-dev
+  name: channel-insights-git-clone
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: revision
+      type: string
+  workspaces:
+    - name: shared
+  steps:
+    - name: clone
+      image: alpine/git:latest
+      workingDir: $(workspaces.shared.path)
+      env:
+        - name: REPOSITORY_URL
+          value: $(params.git-url)
+        - name: REVISION
+          value: $(params.revision)
+        - name: GIT_TERMINAL_PROMPT
+          value: '0'
+      script: |
+        #!/bin/sh
+        set -eu
+        # Reuse the PVC safely without deleting other runs' files.
+        git init source
+        cd source
+        if git remote get-url origin >/dev/null 2>&1; then
+          git remote set-url origin "$REPOSITORY_URL"
+        else
+          git remote add origin "$REPOSITORY_URL"
+        fi
+        git fetch --depth=1 origin "$REVISION"
+        git checkout --force --detach FETCH_HEAD
+---
+# Source: tekton/tasks/npm-install.yaml
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  namespace: nasruddinkhan786-dev
+  name: channel-insights-npm-install
+spec:
+  workspaces:
+    - name: shared
+  steps:
+    - name: install
+      image: node:22-alpine
+      workingDir: $(workspaces.shared.path)/source
+      script: |
+        #!/bin/sh
+        set -eu
+        npm ci
+    - name: build-frontend
+      image: node:22-alpine
+      workingDir: $(workspaces.shared.path)/source
+      env:
+        - name: NODE_OPTIONS
+          value: --max-old-space-size=1536
+      computeResources:
+        requests:
+          memory: 512Mi
+          cpu: 250m
+        limits:
+          memory: 2Gi
+          cpu: '1'
+      script: |
+        #!/bin/sh
+        set -eu
+        npm run build
+---
+# Source: tekton/pipeline.yaml
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  namespace: nasruddinkhan786-dev
+  name: channel-insights-image
+spec:
+  params:
+    - name: git-url
+      type: string
+      default: https://github.com/Nasruddinkhan/channel-insights-ui.git
+    - name: revision
+      type: string
+      default: codex/channel-insights-dashboard
+    - name: image
+      type: string
+      default: docker.io/nasruddinkhan/channel-insights-ui:local
+  workspaces:
+    - name: shared
+    - name: registry-auth
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: channel-insights-git-clone
+      params:
+        - name: git-url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.revision)
+      workspaces:
+        - name: shared
+          workspace: shared
+    - name: npm-install
+      runAfter: [git-clone]
+      taskRef:
+        name: channel-insights-npm-install
+      workspaces:
+        - name: shared
+          workspace: shared
+    - name: docker-build
+      runAfter: [npm-install]
+      taskRef:
+        name: channel-insights-docker-build
+      params:
+        - name: image
+          value: $(params.image)
+      workspaces:
+        - name: shared
+          workspace: shared
+    - name: docker-push
+      runAfter: [docker-build]
+      taskRef:
+        name: channel-insights-docker-push
+      params:
+        - name: image
+          value: $(params.image)
+      workspaces:
+        - name: shared
+          workspace: shared
+        - name: registry-auth
+          workspace: registry-auth
+---
+# Source: tekton/workspace-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: nasruddinkhan786-dev
+  name: channel-insights-workspace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # Uses the cluster's default StorageClass.
+  # Set storageClassName explicitly if your cluster has no default.
+  resources:
+    requests:
+      storage: 5Gi

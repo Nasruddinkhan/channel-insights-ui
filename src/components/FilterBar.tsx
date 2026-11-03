@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, MenuItem, TextField } from '@mui/material';
-import { FilterAltOutlined, RestartAlt } from '@mui/icons-material';
+import FilterAltOutlined from '@mui/icons-material/FilterAltOutlined';
+import RestartAlt from '@mui/icons-material/RestartAlt';
 import type { Filters } from '../types';
 import { DEMO_END, departments } from '../data/events';
 import { shiftDate } from '../utils/analytics';

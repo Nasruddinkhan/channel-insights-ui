@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: channel-insights-docker-build
+spec:
+  params:
+    - name: image
+      type: string
+  workspaces:
+    - name: shared
+  steps:
+    - name: build
+      image: quay.io/buildah/stable:latest
+      workingDir: $(workspaces.shared.path)/source
+      securityContext:
+        privileged: false
+        runAsUser: 0
+        capabilities:
+          add:
+            - SETFCAP
+      env:
+        - name: IMAGE
+          value: $(params.image)
+        - name: IMAGE_ARCHIVE
+          value: $(workspaces.shared.path)/image.tar
+      script: |
+        #!/bin/sh
+        set -eu
+        buildah --storage-driver=vfs build \
+          --isolation=chroot \
+          --format=docker \
+          --file docker/Dockerfile.ci \
+          --ignorefile docker/Dockerfile.ci.dockerignore \
+          --tag "$IMAGE" .
+        # Image storage is pod-local. Export it so the push Task can read it.
+        buildah --storage-driver=vfs push "$IMAGE" "oci-archive:$IMAGE_ARCHIVE"

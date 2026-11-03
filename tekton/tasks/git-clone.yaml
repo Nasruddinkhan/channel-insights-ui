@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: channel-insights-git-clone
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: revision
+      type: string
+  workspaces:
+    - name: shared
+  steps:
+    - name: clone
+      image: alpine/git:latest
+      workingDir: $(workspaces.shared.path)
+      env:
+        - name: REPOSITORY_URL
+          value: $(params.git-url)
+        - name: REVISION
+          value: $(params.revision)
+        - name: GIT_TERMINAL_PROMPT
+          value: '0'
+      script: |
+        #!/bin/sh
+        set -eu
+        # Reuse the PVC safely without deleting other runs' files.
+        git init source
+        cd source
+        if git remote get-url origin >/dev/null 2>&1; then
+          git remote set-url origin "$REPOSITORY_URL"
+        else
+          git remote add origin "$REPOSITORY_URL"
+        fi
+        git fetch --depth=1 origin "$REVISION"
+        git checkout --force --detach FETCH_HEAD

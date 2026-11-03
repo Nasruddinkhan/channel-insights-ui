@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: channel-insights-image-
+spec:
+  pipelineRef:
+    name: channel-insights-image
+  params:
+    - name: revision
+      value: codex/channel-insights-dashboard
+    - name: image
+      value: docker.io/nasruddinkhan/channel-insights-ui:local
+  timeouts:
+    pipeline: 30m
+  workspaces:
+    - name: shared
+      persistentVolumeClaim:
+        claimName: channel-insights-workspace
+      # Each run gets its own directory within the persistent volume.
+      subPath: $(context.pipelineRun.name)
+    - name: registry-auth
+      secret:
+        secretName: registry-auth
