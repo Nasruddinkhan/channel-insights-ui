@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: channel-insights-ui
+  namespace: nasruddinkhan786-dev
+  labels:
+    app: channel-insights-ui
+spec:
+  type: ClusterIP
+  selector:
+    app: channel-insights-ui
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
